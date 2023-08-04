@@ -236,7 +236,7 @@ class CycleGAN(tf.keras.Model):
         epoch = epoch + self.__bias_plot if epoch is not None else epoch
         num_cols = self._plot.shape[0]
 
-        generated_images = self.generator_f.predict(self._plot) / 255.0
+        generated_images = self.generator_f.predict(self._plot)
         plt.figure(figsize=(num_cols * 2.0, num_rows * 2.0))
         for row in range(num_rows):
             for col in range(num_cols):
@@ -264,7 +264,7 @@ if __name__ == '__main__':
     data = ed.Data(path="data/", batch_size=5)
     _, x_plot = data[0]  # 200mb
     x_plot = x_plot[:5]
-    model = CycleGAN(x_plot,batch_size=5)  # 1gb
+    model = CycleGAN(x_plot, batch_size=5)  # 1gb
     model.plot_images()
     model.compile()
     model.fit(data, epochs=10, callbacks=[tf.keras.callbacks.LambdaCallback(on_epoch_end=model.plot_images)])
