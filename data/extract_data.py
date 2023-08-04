@@ -36,7 +36,7 @@ class Data(tf.keras.utils.Sequence):
                 X = np.zeros((self.batch_size, 256, 256, 3), dtype=float)
                 k = 0
 
-            X[k] = np.array(Image.open(f"{self.path}{path}/{name}"), dtype=float) / 255.0
+            X[k] = np.array(Image.open(f"{self.path}{path}/{name}"), dtype=float)
             k += 1
 
         yield X[:k]

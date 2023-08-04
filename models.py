@@ -13,7 +13,7 @@ def get_generator_on_vgg16() -> tf.keras.Model:
     """
 
     def sigmoid(x):
-        return tf.nn.sigmoid(x)
+        return tf.nn.sigmoid(x) * 255.0
 
     blocks = {
         "block1_conv2": 32,
@@ -27,7 +27,7 @@ def get_generator_on_vgg16() -> tf.keras.Model:
         include_top=False,
         weights="imagenet",
     )
-    # vgg16.trainable = False
+    vgg16.trainable = False
 
     x = None
 
@@ -50,38 +50,31 @@ def get_generator_on_vgg16() -> tf.keras.Model:
     return tf.keras.Model(vgg16.input, output)
 
 
-def get_discriminator(leaky_relu_slope=0.2, depth=4, dropout=0.4, n=16) -> tf.keras.Model:
+def get_discriminator(leaky_relu_slope=0.2, depth=5, dropout=0.4, n=4) -> tf.keras.Model:
     """
     :param leaky_relu_slope:
     :param depth:
     :param dropout:
     :param n:
-    :return: Model Trainable params: 1,244,641
+    :return: Model Trainable params:
     Model.input (batch, None, None, 3)
     Model.output (batch, 1)
     """
 
     x = inp = Input(shape=(256, 256, 3))
-    x_fl = Flatten()(inp)
-    x_fl = Dropout(dropout)(x_fl)
-    x_fl = Dense(256, LeakyReLU(alpha=leaky_relu_slope))(x_fl)
 
     for _ in range(depth):
-        x = Conv2D(n, kernel_size=3, padding="same", use_bias=False, )(x)
-        x = BatchNormalization(scale=False)(x)
-        x = LeakyReLU(alpha=leaky_relu_slope)(x)
 
-        x = Conv2D(n * 2, kernel_size=4, strides=2, padding="same", use_bias=False, )(x)
+        x = Conv2D(n * 2, kernel_size=3, strides=2, padding="same", use_bias=False, )(x)
         x = BatchNormalization(scale=False)(x)
         x = LeakyReLU(alpha=leaky_relu_slope)(x)
         n *= 2
 
     x = Flatten()(x)
-    x = concatenate([x_fl, x])
-    x = Dropout(dropout)(x)
-    x = Dense(512, LeakyReLU(alpha=leaky_relu_slope))(x)
     x = Dropout(dropout)(x)
     x = Dense(256, LeakyReLU(alpha=leaky_relu_slope))(x)
+    x = Dropout(dropout)(x)
+    x = Dense(128, LeakyReLU(alpha=leaky_relu_slope))(x)
     x = Dropout(dropout)(x)
 
     output = Dense(1)(x)
@@ -246,16 +239,16 @@ class CycleGAN(tf.keras.Model):
         epoch = epoch + self.__bias_plot if epoch is not None else epoch
         num_cols = self._plot.shape[0]
 
-        generated_images = self.generator_real_to_monet.predict(self._plot)
+        generated_images = self.generator_real_to_monet.predict(self._plot) / 255.0
         plt.figure(figsize=(num_cols * 2.0, num_rows * 2.0))
         for row in range(num_rows):
             for col in range(num_cols):
                 index = row * num_cols + col
                 plt.subplot(num_rows, num_cols, index + 1)
                 if row == 0:
-                    plt.imshow(self._plot[col])
+                    plt.imshow(self._plot[col] / 255.0)
                 else:
-                    plt.imshow(generated_images[col])
+                    plt.imshow(generated_images[col] )
                 plt.axis("off")
         plt.tight_layout()
         plt.savefig(f'{self.path}image_at_epoch{epoch}.png')
@@ -269,13 +262,14 @@ class CycleGAN(tf.keras.Model):
 
 
 if __name__ == '__main__':
-    import data.extract_data as ed
-
-    data = ed.Data(path="data/", batch_size=1)
-    _, x_plot = data[0]  # 200mb
-    x_plot = x_plot[:5]
-    model = CycleGAN(x_plot)  # 1gb
-    model.plot_images()
-    model.compile()
-    model.fit(data, epochs=10, callbacks=[tf.keras.callbacks.LambdaCallback(on_epoch_end=model.plot_images)])
+    # import data.extract_data as ed
+    #
+    # data = ed.Data(path="data/", batch_size=1)
+    # _, x_plot = data[0]  # 200mb
+    # x_plot = x_plot[:5]
+    # model = CycleGAN(x_plot)  # 1gb
+    # model.plot_images()
+    # model.compile()
+    # model.fit(data, epochs=10, callbacks=[tf.keras.callbacks.LambdaCallback(on_epoch_end=model.plot_images)])
     # model.fit(data,epochs=10,callbacks=[tf.keras.callbacks.LambdaCallback(on_epoch_end=model.plot_images)])
+    print(get_discriminator().summary())
