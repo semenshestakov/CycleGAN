@@ -246,14 +246,14 @@ class CycleGAN(tf.keras.Model):
         epoch = epoch + self.__bias_plot if epoch is not None else epoch
         num_cols = self._plot.shape[0]
 
-        generated_images = self.generator_real_to_monet.predict(self._plot) / 255.0
+        generated_images = self.generator_real_to_monet.predict(self._plot)
         plt.figure(figsize=(num_cols * 2.0, num_rows * 2.0))
         for row in range(num_rows):
             for col in range(num_cols):
                 index = row * num_cols + col
                 plt.subplot(num_rows, num_cols, index + 1)
                 if row == 0:
-                    plt.imshow(self._plot[col] / 255.0)
+                    plt.imshow(self._plot[col])
                 else:
                     plt.imshow(generated_images[col])
                 plt.axis("off")
