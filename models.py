@@ -13,7 +13,7 @@ def get_generator_on_vgg16() -> tf.keras.Model:
     """
 
     def sigmoid(x):
-        return tf.nn.sigmoid(x / 255.0) * 255.0
+        return tf.nn.sigmoid(x)
 
     blocks = {
         "block1_conv2": 32,
@@ -27,7 +27,7 @@ def get_generator_on_vgg16() -> tf.keras.Model:
         include_top=False,
         weights="imagenet",
     )
-    vgg16.trainable = False
+    # vgg16.trainable = False
 
     x = None
 
