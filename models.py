@@ -27,7 +27,7 @@ def get_generator_on_vgg16() -> tf.keras.Model:
         include_top=False,
         weights="imagenet",
     )
-    # vgg16.trainable = False
+    vgg16.trainable = False
 
     x = None
 
@@ -236,14 +236,14 @@ class CycleGAN(tf.keras.Model):
         epoch = epoch + self.__bias_plot if epoch is not None else epoch
         num_cols = self._plot.shape[0]
 
-        generated_images = self.generator_f.predict(self._plot)
+        generated_images = self.generator_f.predict(self._plot) / 2 + 0.5
         plt.figure(figsize=(num_cols * 2.0, num_rows * 2.0))
         for row in range(num_rows):
             for col in range(num_cols):
                 index = row * num_cols + col
                 plt.subplot(num_rows, num_cols, index + 1)
                 if row == 0:
-                    plt.imshow(self._plot[col])
+                    plt.imshow((self._plot[col] + 1) / 2)
                 else:
                     plt.imshow(generated_images[col])
                 plt.axis("off")
