@@ -22,7 +22,7 @@ class Data(tf.keras.utils.Sequence):
         k1 = self.df[self.df["path"] == "photo"].__len__()
         k2 = self.df[self.df["path"] == "monet"].__len__()
 
-        return min(k2, k1)
+        return max(k2, k1)
 
     def __gen(self, path: str):
 
