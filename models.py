@@ -27,7 +27,7 @@ def get_generator_on_vgg16() -> tf.keras.Model:
         include_top=False,
         weights="imagenet",
     )
-    vgg16.trainable = False
+    # vgg16.trainable = False
 
     x = None
 
