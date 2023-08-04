@@ -34,6 +34,7 @@ class Data(tf.keras.utils.Sequence):
             if k >= self.batch_size:
                 yield X
                 X = np.zeros((self.batch_size, 256, 256, 3), dtype=float)
+                k = 0
 
             X[k] = np.array(Image.open(f"{self.path}{path}/{name}"), dtype=float)
             k += 1
@@ -61,5 +62,5 @@ if __name__ == '__main__':
     d = Data()
     x1, x2 = d[0]
     print(x2.shape,x1.shape)
-    plt.imshow(x1[0])
+    plt.imshow(x1[1] / 255)
     plt.show()
