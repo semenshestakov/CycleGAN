@@ -103,7 +103,8 @@ class CycleGAN(tf.keras.Model):
     cycle_real -
     """
 
-    def __init__(self, data_plot: np.array, path="", lambda_cycle=10.0, lambda_identity=0.5, ):
+    def __init__(self, data_plot: np.array, path="", lambda_cycle=10.0, lambda_identity=0.5,batch_size=20 ):
+
         super(CycleGAN, self).__init__()
 
         self.generator_monet_to_real = get_generator_on_vgg16()
@@ -115,6 +116,7 @@ class CycleGAN(tf.keras.Model):
         self._plot = np.clip(data_plot, 0, 255.0)
         self.lambda_cycle = lambda_cycle
         self.lambda_identity = lambda_identity
+        self.BATCH = batch_size
 
     def adversarial_loss(self, real_logits, generated_logits):
         # try:/
@@ -170,7 +172,7 @@ class CycleGAN(tf.keras.Model):
         fl = True
         if x_monet.shape[0] is None:
             print("Start...")
-            x_monet, x_real = np.random.normal(size=(1, 256, 256, 3)), np.random.normal(size=(1, 256, 256, 3))
+            x_monet, x_real = tf.random.normal(shape=(self.BATCH, 256, 256, 3)), tf.random.normal(shape=(self.BATCH, 256, 256, 3))
         with tf.GradientTape(persistent=True) as tape_monet, tf.GradientTape(persistent=True) as tape_real:
             real_from_monet = self.generator_monet_to_real(x_monet, training=fl)
             dis_res_real_gen = self.discriminator_real(real_from_monet, training=fl)
@@ -268,7 +270,7 @@ if __name__ == '__main__':
     _, x_plot = data[0] # 200mb
     x_plot = x_plot[:5]
     model = CycleGAN(x_plot) # 1gb
-    # model.plot_images()
+    model.plot_images()
     model.compile()
-    # model.fit(data,epochs=10,callbacks=[tf.keras.callbacks.LambdaCallback(on_epoch_end=model.plot_images)])
+    model.fit(data,epochs=10,callbacks=[tf.keras.callbacks.LambdaCallback(on_epoch_end=model.plot_images)])
     # model.fit(data,epochs=10,callbacks=[tf.keras.callbacks.LambdaCallback(on_epoch_end=model.plot_images)])
