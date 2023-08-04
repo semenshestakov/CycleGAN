@@ -13,7 +13,7 @@ def get_generator_on_vgg16() -> tf.keras.Model:
     """
 
     def sigmoid(x):
-        return tf.nn.sigmoid(x) * 255.0
+        return tf.nn.sigmoid(x)
 
     blocks = {
         "block1_conv2": 32,
@@ -103,7 +103,8 @@ class CycleGAN(tf.keras.Model):
     cycle_real -
     """
 
-    def __init__(self, data_plot: np.array, path="", lambda_cycle=10.0, lambda_identity=0.5,batch_size=20,bias_plot=0,iterval_save=5 ):
+    def __init__(self, data_plot: np.array, path="", lambda_cycle=10.0, lambda_identity=0.5, batch_size=20, bias_plot=0,
+                 iterval_save=5):
 
         super(CycleGAN, self).__init__()
 
@@ -144,7 +145,7 @@ class CycleGAN(tf.keras.Model):
             generator_optimizer_real=tf.keras.optimizers.Adam(2e-4, beta_1=0.5),  # 3
             generator_optimizer_fake=tf.keras.optimizers.Adam(2e-4, beta_1=0.5),  # 3
 
-            loss = tf.keras.losses.BinaryCrossentropy(from_logits=True),
+            loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
 
             on_real_accuracy_to_real=tf.keras.metrics.BinaryAccuracy(name="on_real_accuracy_to_real"),
             on_real_accuracy_to_fake=tf.keras.metrics.BinaryAccuracy(name="on_real_accuracy_to_fake"),
@@ -165,16 +166,17 @@ class CycleGAN(tf.keras.Model):
         self.on_monet_accuracy_to_monet = on_monet_accuracy_to_monet
         self.on_monet_accuracy_to_fake = on_monet_accuracy_to_fake
 
+    def MAE(self, x, y):
+        return tf.reduce_mean(tf.abs(x - y))
 
-    def MAE(self,x,y):
-        return tf.reduce_mean(tf.abs(x-y))
     @tf.function
     def train_step(self, data):
         x_monet, x_real = data
         fl = True
         if x_monet.shape[0] is None:
             print("Start...")
-            x_monet, x_real = tf.random.normal(shape=(self.BATCH, 256, 256, 3)), tf.random.normal(shape=(self.BATCH, 256, 256, 3))
+            x_monet, x_real = tf.random.normal(shape=(self.BATCH, 256, 256, 3)), tf.random.normal(
+                shape=(self.BATCH, 256, 256, 3))
         with tf.GradientTape(persistent=True) as tape_monet, tf.GradientTape(persistent=True) as tape_real:
             real_from_monet = self.generator_monet_to_real(x_monet, training=fl)
             dis_res_real_gen = self.discriminator_real(real_from_monet, training=fl)
@@ -193,7 +195,7 @@ class CycleGAN(tf.keras.Model):
             identity_gen_monet = self.generator_monet_to_real(x_real, training=fl)
             identity_gen_real = self.generator_real_to_monet(x_monet, training=fl)
             identity_monet_loss = self.MAE(x_real, identity_gen_monet * self.lambda_cycle * self.lambda_identity)
-            identity_real_loss = self.MAE(x_monet, identity_gen_real * self.lambda_cycle * self.lambda_identity,)
+            identity_real_loss = self.MAE(x_monet, identity_gen_real * self.lambda_cycle * self.lambda_identity, )
 
             total_loss_gen_monet = loss_dis_monet_gen + loss_cycle_monet + identity_monet_loss
             total_loss_gen_real = loss_dis_real_gen + loss_cycle_real + identity_real_loss
@@ -265,15 +267,15 @@ class CycleGAN(tf.keras.Model):
             self.generator_real_to_monet.save(f"{self.path}generator_real_to_monet ep{epoch}")
             self.generator_monet_to_real.save(f"{self.path}generator_monet_to_real ep{epoch}")
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     import data.extract_data as ed
 
-    data = ed.Data(path="data/",batch_size=1)
-    _, x_plot = data[0] # 200mb
+    data = ed.Data(path="data/", batch_size=1)
+    _, x_plot = data[0]  # 200mb
     x_plot = x_plot[:5]
-    model = CycleGAN(x_plot) # 1gb
+    model = CycleGAN(x_plot)  # 1gb
     model.plot_images()
     model.compile()
-    model.fit(data,epochs=10,callbacks=[tf.keras.callbacks.LambdaCallback(on_epoch_end=model.plot_images)])
+    model.fit(data, epochs=10, callbacks=[tf.keras.callbacks.LambdaCallback(on_epoch_end=model.plot_images)])
     # model.fit(data,epochs=10,callbacks=[tf.keras.callbacks.LambdaCallback(on_epoch_end=model.plot_images)])
