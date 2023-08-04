@@ -13,7 +13,7 @@ def get_generator_on_vgg16() -> tf.keras.Model:
     """
 
     def sigmoid(x):
-        return tf.nn.sigmoid(x)
+        return tf.nn.tanh(x)
 
     blocks = {
         "block1_conv2": 32,
@@ -243,7 +243,7 @@ class CycleGAN(tf.keras.Model):
                 index = row * num_cols + col
                 plt.subplot(num_rows, num_cols, index + 1)
                 if row == 0:
-                    plt.imshow(self._plot[col] / 255.0)
+                    plt.imshow(self._plot[col])
                 else:
                     plt.imshow(generated_images[col])
                 plt.axis("off")
@@ -267,6 +267,6 @@ if __name__ == '__main__':
     model = CycleGAN(x_plot, batch_size=5)  # 1gb
     model.plot_images()
     model.compile()
-    model.fit(data, epochs=10, callbacks=[tf.keras.callbacks.LambdaCallback(on_epoch_end=model.plot_images)])
+    # model.fit(data, epochs=10, callbacks=[tf.keras.callbacks.LambdaCallback(on_epoch_end=model.plot_images)])
     # model.fit(data,epochs=10,callbacks=[tf.keras.callbacks.LambdaCallback(on_epoch_end=model.plot_images)])
     # print(get_discriminator().summary())
