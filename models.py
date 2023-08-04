@@ -154,12 +154,12 @@ class CycleGAN(tf.keras.Model):
         return tf.reduce_mean(tf.abs(x - y))
 
     def calc_cycle_loss(self, real_image, cycled_image):
-        loss1 = self.MAE(real_image - cycled_image)
+        loss1 = self.MAE(real_image, cycled_image)
 
         return loss1 * self.lambda_cycle
 
     def identity_loss(self, real_image, same_image):
-        loss = tf.reduce_mean(tf.abs(real_image - same_image))
+        loss = self.MAE(real_image, same_image)
         return loss * self.lambda_identity * self.lambda_cycle
 
     @tf.function
@@ -259,14 +259,14 @@ class CycleGAN(tf.keras.Model):
 
 
 if __name__ == '__main__':
-    # import data.extract_data as ed
-    #
-    # data = ed.Data(path="data/", batch_size=1)
-    # _, x_plot = data[0]  # 200mb
-    # x_plot = x_plot[:5]
-    # model = CycleGAN(x_plot)  # 1gb
-    # model.plot_images()
-    # model.compile()
-    # model.fit(data, epochs=10, callbacks=[tf.keras.callbacks.LambdaCallback(on_epoch_end=model.plot_images)])
+    import data.extract_data as ed
+
+    data = ed.Data(path="data/", batch_size=5)
+    _, x_plot = data[0]  # 200mb
+    x_plot = x_plot[:5]
+    model = CycleGAN(x_plot,batch_size=5)  # 1gb
+    model.plot_images()
+    model.compile()
+    model.fit(data, epochs=10, callbacks=[tf.keras.callbacks.LambdaCallback(on_epoch_end=model.plot_images)])
     # model.fit(data,epochs=10,callbacks=[tf.keras.callbacks.LambdaCallback(on_epoch_end=model.plot_images)])
-    print(get_discriminator().summary())
+    # print(get_discriminator().summary())
