@@ -114,12 +114,12 @@ class CycleGAN(tf.keras.Model):
         self.lambda_identity = lambda_identity
 
     def adversarial_loss(self, real_logits, generated_logits):
-        try:
-            real_labels = tf.ones(shape=(real_logits.shape[0], 1))
-            generated_labels = tf.zeros(shape=(generated_logits.shape[0], 1))
-        except TypeError:
-            real_labels = tf.ones(shape=(1, 1))
-            generated_labels = tf.zeros(shape=(1, 1))
+        # try:/
+        real_labels = tf.ones(shape=(real_logits.shape[0], 1))
+        generated_labels = tf.zeros(shape=(generated_logits.shape[0], 1))
+        # except TypeError:
+        #     real_labels = tf.ones(shape=(1, 1))
+        #     generated_labels = tf.zeros(shape=(1, 1))
 
         generator_loss = self.loss(
             real_labels, generated_logits,
@@ -165,11 +165,10 @@ class CycleGAN(tf.keras.Model):
     def train_step(self, data):
         x_monet, x_real = data
         fl = True
-        # if x_monet.shape[0] is None:
-        #     return {}
-            # print("Start...")
-            # fl = False
-            # x_monet, x_real = np.random.normal(size=(1, 256, 256, 3)), np.random.normal(size=(1, 256, 256, 3))
+        if x_monet.shape[0] is None:
+            print("Start...")
+            fl = False
+            x_monet, x_real = np.random.normal(size=(1, 256, 256, 3)), np.random.normal(size=(1, 256, 256, 3))
         with tf.GradientTape(persistent=True) as tape_monet, tf.GradientTape(persistent=True) as tape_real:
             real_from_monet = self.generator_monet_to_real(x_monet, training=fl)
             dis_res_real_gen = self.discriminator_real(real_from_monet, training=fl)
