@@ -13,7 +13,7 @@ def get_generator_on_vgg16() -> tf.keras.Model:
     """
 
     def sigmoid(x):
-        return tf.nn.sigmoid(x) * 255.0
+        return tf.nn.sigmoid(x / 255.0) * 255.0
 
     blocks = {
         "block1_conv2": 32,
