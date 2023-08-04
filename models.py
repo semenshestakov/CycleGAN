@@ -103,7 +103,7 @@ class CycleGAN(tf.keras.Model):
     cycle_real -
     """
 
-    def __init__(self, data_plot: np.array, path="", lambda_cycle=10.0, lambda_identity=0.5,batch_size=20 ):
+    def __init__(self, data_plot: np.array, path="", lambda_cycle=10.0, lambda_identity=0.5,batch_size=20,bias_plot=0,iterval_save=5 ):
 
         super(CycleGAN, self).__init__()
 
@@ -113,6 +113,8 @@ class CycleGAN(tf.keras.Model):
         self.discriminator_monet = get_discriminator()
 
         self.path = path
+        self.save_iterval = iterval_save
+        self.__bias_plot = bias_plot
         self._plot = np.clip(data_plot, 0, 255.0)
         self.lambda_cycle = lambda_cycle
         self.lambda_identity = lambda_identity
@@ -239,6 +241,7 @@ class CycleGAN(tf.keras.Model):
 
     def plot_images(self, epoch=None, logs=None, num_rows=2, num_cols=5, interval=2):
 
+        epoch = epoch + self.__bias_plot if epoch is not None else epoch
         num_cols = self._plot.shape[0]
 
         generated_images = self.generator_real_to_monet.predict(self._plot) / 255.0
@@ -256,7 +259,7 @@ class CycleGAN(tf.keras.Model):
         plt.savefig(f'{self.path}image_at_epoch{epoch}.png')
         plt.show()
 
-        if bool(epoch) and epoch % 25 == 0:
+        if bool(epoch) and epoch % self.save_iterval == 0:
             self.discriminator_monet.save(f"{self.path}discriminator_monet ep{epoch}")
             self.discriminator_real.save(f"{self.path}discriminator_real ep{epoch}")
             self.generator_real_to_monet.save(f"{self.path}generator_real_to_monet ep{epoch}")
