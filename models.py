@@ -56,7 +56,7 @@ def get_discriminator(leaky_relu_slope=0.2, depth=5, dropout=0.4, n=4) -> tf.ker
     :param depth:
     :param dropout:
     :param n:
-    :return: Model Trainable params:
+    :return: Model Trainable params: 2,228,569
     Model.input (batch, None, None, 3)
     Model.output (batch, 1)
     """
@@ -64,9 +64,7 @@ def get_discriminator(leaky_relu_slope=0.2, depth=5, dropout=0.4, n=4) -> tf.ker
     x = inp = Input(shape=(256, 256, 3))
 
     for _ in range(depth):
-
         x = Conv2D(n * 2, kernel_size=3, strides=2, padding="same", use_bias=False, )(x)
-        x = BatchNormalization(scale=False)(x)
         x = LeakyReLU(alpha=leaky_relu_slope)(x)
         n *= 2
 
@@ -92,8 +90,9 @@ class CycleGAN(tf.keras.Model):
     on_real_accuracy_to_fake - точность дискриминатора на сгенерированных для реальных изображений
     on_monet_accuracy_to_monet - точность дискриминатора на картинах для картин
     on_monet_accuracy_to_fake - точность дискриминатора на сгенерированных для картин
-    cycle_money -
-    cycle_real -
+    total_cycle_loss
+    total_gen_g_loss - Monet -> real gen
+    total_gen_f_loss - real -> monet
     """
 
     def __init__(self, data_plot: np.array, path="", lambda_cycle=10.0, lambda_identity=0.5, batch_size=20, bias_plot=0,
@@ -101,10 +100,10 @@ class CycleGAN(tf.keras.Model):
 
         super(CycleGAN, self).__init__()
 
-        self.generator_monet_to_real = get_generator_on_vgg16()
-        self.generator_real_to_monet = get_generator_on_vgg16()
-        self.discriminator_real = get_discriminator()
-        self.discriminator_monet = get_discriminator()
+        self.generator_g = get_generator_on_vgg16()
+        self.generator_f = get_generator_on_vgg16()
+        self.discriminator_x = get_discriminator()
+        self.discriminator_y = get_discriminator()
 
         self.path = path
         self.save_iterval = iterval_save
@@ -114,22 +113,14 @@ class CycleGAN(tf.keras.Model):
         self.lambda_identity = lambda_identity
         self.BATCH = batch_size
 
-    def adversarial_loss(self, real_logits, generated_logits):
-        # try:/
-        real_labels = tf.ones(shape=(real_logits.shape[0], 1))
-        generated_labels = tf.zeros(shape=(generated_logits.shape[0], 1))
-        # except TypeError:
-        #     real_labels = tf.ones(shape=(1, 1))
-        #     generated_labels = tf.zeros(shape=(1, 1))
+    def discriminator_loss(self, real, generated):
+        real_loss = self.loss(tf.ones_like(real), real)
+        generated_loss = self.loss(tf.zeros_like(generated), generated)
+        total_disc_loss = real_loss + generated_loss
+        return total_disc_loss * 0.5
 
-        generator_loss = self.loss(
-            real_labels, generated_logits,
-        )
-        discriminator_loss = self.loss(
-            tf.concat([real_labels, generated_labels], axis=0), tf.concat([real_logits, generated_logits], axis=0),
-        )
-
-        return tf.reduce_mean(generator_loss), tf.reduce_mean(discriminator_loss)
+    def generator_loss(self, generated):
+        return self.loss(tf.ones_like(generated), generated)
 
     def compile(
             self,
@@ -162,6 +153,15 @@ class CycleGAN(tf.keras.Model):
     def MAE(self, x, y):
         return tf.reduce_mean(tf.abs(x - y))
 
+    def calc_cycle_loss(self, real_image, cycled_image):
+        loss1 = self.MAE(real_image - cycled_image)
+
+        return loss1 * self.lambda_cycle
+
+    def identity_loss(self, real_image, same_image):
+        loss = tf.reduce_mean(tf.abs(real_image - same_image))
+        return loss * self.lambda_identity * self.lambda_cycle
+
     @tf.function
     def train_step(self, data):
         x_monet, x_real = data
@@ -170,53 +170,52 @@ class CycleGAN(tf.keras.Model):
             print("Start...")
             x_monet, x_real = tf.random.normal(shape=(self.BATCH, 256, 256, 3)), tf.random.normal(
                 shape=(self.BATCH, 256, 256, 3))
-        with tf.GradientTape(persistent=True) as tape_monet, tf.GradientTape(persistent=True) as tape_real:
-            real_from_monet = self.generator_monet_to_real(x_monet, training=fl)
-            dis_res_real_gen = self.discriminator_real(real_from_monet, training=fl)
-            dis_res_real = self.discriminator_real(x_real, training=fl)
-            res_cycle_monet = self.generator_real_to_monet(real_from_monet, training=fl)
-            loss_cycle_monet = self.MAE(x_monet, res_cycle_monet) * self.lambda_cycle
-            loss_dis_monet_gen, loss_dis_real = self.adversarial_loss(dis_res_real, dis_res_real_gen)
+        real_x, real_y = x_monet, x_real
+        with tf.GradientTape(persistent=True) as tape:
+            fake_y = self.generator_g(real_x, training=True)
+            cycled_x = self.generator_f(fake_y, training=True)
+            fake_x = self.generator_f(real_y, training=True)
+            cycled_y = self.generator_g(fake_x, training=True)
+            same_x = self.generator_f(real_x, training=True)
+            same_y = self.generator_g(real_y, training=True)
 
-            monet_from_real = self.generator_real_to_monet(x_real, training=fl)
-            dis_res_monet_gen = self.discriminator_monet(monet_from_real, training=fl)
-            dis_res_monet = self.discriminator_monet(x_monet, training=fl)
-            res_cycle_real = self.generator_monet_to_real(monet_from_real, training=fl)
-            loss_cycle_real = self.MAE(x_real, res_cycle_real) * self.lambda_cycle
-            loss_dis_real_gen, loss_dis_monet = self.adversarial_loss(dis_res_monet, dis_res_monet_gen)
+            disc_real_x = self.discriminator_x(real_x, training=True)  # 1
+            disc_real_y = self.discriminator_y(real_y, training=True)  # 1
+            disc_fake_x = self.discriminator_x(fake_x, training=True)
+            disc_fake_y = self.discriminator_y(fake_y, training=True)
 
-            identity_gen_monet = self.generator_monet_to_real(x_real, training=fl)
-            identity_gen_real = self.generator_real_to_monet(x_monet, training=fl)
-            identity_monet_loss = self.MAE(x_real, identity_gen_monet * self.lambda_cycle * self.lambda_identity)
-            identity_real_loss = self.MAE(x_monet, identity_gen_real * self.lambda_cycle * self.lambda_identity, )
+            gen_g_loss = self.generator_loss(disc_fake_y)
+            gen_f_loss = self.generator_loss(disc_fake_x)
 
-            total_loss_gen_monet = loss_dis_monet_gen + loss_cycle_monet + identity_monet_loss
-            total_loss_gen_real = loss_dis_real_gen + loss_cycle_real + identity_real_loss
+            total_cycle_loss = self.calc_cycle_loss(real_x, cycled_x) + self.calc_cycle_loss(real_y, cycled_y)
+            total_gen_g_loss = gen_g_loss + total_cycle_loss + self.identity_loss(real_y, same_y)
+            total_gen_f_loss = gen_f_loss + total_cycle_loss + self.identity_loss(real_x, same_x)
 
-        grad_total_monet_gen = tape_monet.gradient(total_loss_gen_monet, self.generator_monet_to_real.trainable_weights)
-        dis_grad_real = tape_monet.gradient(loss_dis_real, self.discriminator_real.trainable_weights)
-        # real_from_gen_monet_grad = tape_monet.gradient(res_cycle_monet, self.generator_real_to_monet.trainable_weights)
+            disc_x_loss = self.discriminator_loss(disc_real_x, disc_fake_x)
+            disc_y_loss = self.discriminator_loss(disc_real_y, disc_fake_y)
 
-        grad_total_real_gen = tape_real.gradient(total_loss_gen_real, self.generator_real_to_monet.trainable_weights)
-        dis_grad_monet = tape_real.gradient(loss_dis_monet, self.discriminator_monet.trainable_weights)
-        # monet_from_gen_real_grad = tape_real.gradient(res_cycle_real, self.generator_monet_to_real.trainable_weights)
+        generator_g_gradients = tape.gradient(total_gen_g_loss, self.generator_g.trainable_variables)
+        generator_f_gradients = tape.gradient(total_gen_f_loss, self.generator_f.trainable_variables)
 
-        self.generator_optimizer_fake.apply_gradients(
-            zip(grad_total_monet_gen, self.generator_monet_to_real.trainable_weights))
-        self.discriminator_optimizer_real.apply_gradients(zip(dis_grad_real, self.discriminator_real.trainable_weights))
-        # self.generator_optimizer_real.apply_gradients(real_from_gen_monet_grad,self.generator_monet_to_real.trainable_weights)
+        discriminator_x_gradients = tape.gradient(disc_x_loss, self.discriminator_x.trainable_variables)
+        discriminator_y_gradients = tape.gradient(disc_y_loss, self.discriminator_y.trainable_variables)
 
-        self.generator_optimizer_real.apply_gradients(
-            zip(grad_total_real_gen, self.generator_real_to_monet.trainable_weights))
-        self.discriminator_optimizer_fake.apply_gradients(
-            zip(dis_grad_monet, self.discriminator_monet.trainable_weights))
-        # self.generator_optimizer_fake.apply_gradients(monet_from_gen_real_grad, self.generator_monet_to_real.trainable_weights)
+        self.generator_optimizer_real.apply_gradients(zip(generator_g_gradients,
+                                                          self.generator_g.trainable_variables))
 
-        self.on_real_accuracy_to_real.update_state(1.0, step(dis_res_real))
-        self.on_real_accuracy_to_fake.update_state(0.0, step(dis_res_real_gen))
+        self.generator_optimizer_fake.apply_gradients(zip(generator_f_gradients,
+                                                          self.generator_f.trainable_variables))
 
-        self.on_monet_accuracy_to_monet.update_state(1.0, step(dis_res_monet))
-        self.on_monet_accuracy_to_fake.update_state(0.0, step(dis_res_monet_gen))
+        self.discriminator_optimizer_real.apply_gradients(zip(discriminator_x_gradients,
+                                                              self.discriminator_x.trainable_variables))
+
+        self.discriminator_optimizer_fake.apply_gradients(zip(discriminator_y_gradients,
+                                                              self.discriminator_y.trainable_variables))
+
+        self.on_real_accuracy_to_real.update_state(1.0, step(disc_real_y))
+        self.on_monet_accuracy_to_monet.update_state(1.0, step(disc_real_x))
+        self.on_real_accuracy_to_fake.update_state(0.0, step(disc_fake_y))
+        self.on_monet_accuracy_to_fake.update_state(0.0, step(disc_fake_x))
 
         stat = {
             s.name: s.result() for s in [
@@ -226,11 +225,9 @@ class CycleGAN(tf.keras.Model):
                 self.on_monet_accuracy_to_fake
             ]
         }
-        stat["cycle_money"] = loss_cycle_monet
-        stat["cycle_real"] = loss_cycle_real
-        stat["loss"] = (total_loss_gen_real + total_loss_gen_monet) * 0.5
-        stat["total_loss_gen_real"] = total_loss_gen_real
-        stat["total_loss_gen_monet"] = total_loss_gen_monet
+        stat["total_cycle_loss"] = total_cycle_loss
+        stat["monet->real"] = total_gen_g_loss
+        stat["real->monet"] = total_gen_f_loss
 
         return stat
 
@@ -239,7 +236,7 @@ class CycleGAN(tf.keras.Model):
         epoch = epoch + self.__bias_plot if epoch is not None else epoch
         num_cols = self._plot.shape[0]
 
-        generated_images = self.generator_real_to_monet.predict(self._plot) / 255.0
+        generated_images = self.generator_f.predict(self._plot) / 255.0
         plt.figure(figsize=(num_cols * 2.0, num_rows * 2.0))
         for row in range(num_rows):
             for col in range(num_cols):
@@ -248,7 +245,7 @@ class CycleGAN(tf.keras.Model):
                 if row == 0:
                     plt.imshow(self._plot[col] / 255.0)
                 else:
-                    plt.imshow(generated_images[col] )
+                    plt.imshow(generated_images[col])
                 plt.axis("off")
         plt.tight_layout()
         plt.savefig(f'{self.path}image_at_epoch{epoch}.png')
