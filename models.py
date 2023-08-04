@@ -12,6 +12,9 @@ def get_generator_on_vgg16() -> tf.keras.Model:
     Model.output (batch, None, None, 3)
     """
 
+    def sigmoid(x):
+        return tf.nn.sigmoid(x) * 255.0
+
     blocks = {
         "block1_conv2": 32,
         "block2_conv2": 64,
@@ -42,7 +45,7 @@ def get_generator_on_vgg16() -> tf.keras.Model:
     x = Conv2D(16, (3, 3), activation="relu", padding="same")(x)
     x = Conv2D(8, (3, 3), activation="relu", padding="same")(x)
 
-    output = Conv2D(3, (2, 2), activation="sigmoid", padding="same", name="output")(x)
+    output = Conv2D(3, (2, 2), activation=sigmoid, padding="same", name="output")(x)
 
     return tf.keras.Model(vgg16.input, output)
 
@@ -167,7 +170,6 @@ class CycleGAN(tf.keras.Model):
         fl = True
         if x_monet.shape[0] is None:
             print("Start...")
-            fl = False
             x_monet, x_real = np.random.normal(size=(1, 256, 256, 3)), np.random.normal(size=(1, 256, 256, 3))
         with tf.GradientTape(persistent=True) as tape_monet, tf.GradientTape(persistent=True) as tape_real:
             real_from_monet = self.generator_monet_to_real(x_monet, training=fl)
@@ -269,4 +271,4 @@ if __name__ == '__main__':
     # model.plot_images()
     model.compile()
     # model.fit(data,epochs=10,callbacks=[tf.keras.callbacks.LambdaCallback(on_epoch_end=model.plot_images)])
-    model.fit(data,epochs=10,callbacks=[tf.keras.callbacks.LambdaCallback(on_epoch_end=model.plot_images)])
+    # model.fit(data,epochs=10,callbacks=[tf.keras.callbacks.LambdaCallback(on_epoch_end=model.plot_images)])
