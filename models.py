@@ -13,7 +13,7 @@ def get_generator_on_vgg16() -> tf.keras.Model:
     """
 
     def sigmoid(x):
-        return tf.nn.tanh(x)
+        return tf.nn.sigmoid(x)
 
     blocks = {
         "block1_conv2": 32,
@@ -26,6 +26,7 @@ def get_generator_on_vgg16() -> tf.keras.Model:
     vgg16 = tf.keras.applications.VGG16(
         include_top=False,
         weights="imagenet",
+        input_shape=(256,256,3)
     )
     vgg16.trainable = False
 
@@ -33,7 +34,7 @@ def get_generator_on_vgg16() -> tf.keras.Model:
 
     for block in sorted(blocks.keys(), reverse=True):
 
-        l = vgg16.get_layer(block).output
+        l = vgg16.get_layer(block).output / 100.0
         if x is not None:
             l = concatenate([
                 l, x
@@ -47,7 +48,11 @@ def get_generator_on_vgg16() -> tf.keras.Model:
 
     output = Conv2D(3, (2, 2), activation=sigmoid, padding="same", name="output")(x)
 
-    return tf.keras.Model(vgg16.input, output)
+    model = tf.keras.Model(vgg16.input, output,name="model_skip_on_vgg16")
+    inp = Input((256,256,3))
+    x = tf.keras.layers.Lambda(lambda x: x * 255.0)(inp)
+    x = model(x)
+    return tf.keras.Model(inp,x)
 
 
 def get_discriminator(leaky_relu_slope=0.2, depth=5, dropout=0.4, n=4) -> tf.keras.Model:
@@ -236,14 +241,14 @@ class CycleGAN(tf.keras.Model):
         epoch = epoch + self.__bias_plot if epoch is not None else epoch
         num_cols = self._plot.shape[0]
 
-        generated_images = self.generator_f.predict(self._plot) / 2 + 0.5
+        generated_images = self.generator_f.predict(self._plot)
         plt.figure(figsize=(num_cols * 2.0, num_rows * 2.0))
         for row in range(num_rows):
             for col in range(num_cols):
                 index = row * num_cols + col
                 plt.subplot(num_rows, num_cols, index + 1)
                 if row == 0:
-                    plt.imshow((self._plot[col] + 1) / 2)
+                    plt.imshow(self._plot[col])
                 else:
                     plt.imshow(generated_images[col])
                 plt.axis("off")
@@ -252,10 +257,10 @@ class CycleGAN(tf.keras.Model):
         plt.show()
 
         if bool(epoch) and epoch % self.save_iterval == 0:
-            self.discriminator_monet.save(f"{self.path}discriminator_monet ep{epoch}")
-            self.discriminator_real.save(f"{self.path}discriminator_real ep{epoch}")
-            self.generator_real_to_monet.save(f"{self.path}generator_real_to_monet ep{epoch}")
-            self.generator_monet_to_real.save(f"{self.path}generator_monet_to_real ep{epoch}")
+            self.discriminator_x.save(f"{self.path}discriminator_monet ep{epoch}")
+            self.discriminator_y.save(f"{self.path}discriminator_real ep{epoch}")
+            self.generator_f.save(f"{self.path}generator_real_to_monet ep{epoch}")
+            self.generator_g.save(f"{self.path}generator_monet_to_real ep{epoch}")
 
 
 if __name__ == '__main__':
@@ -269,4 +274,4 @@ if __name__ == '__main__':
     model.compile()
     # model.fit(data, epochs=10, callbacks=[tf.keras.callbacks.LambdaCallback(on_epoch_end=model.plot_images)])
     # model.fit(data,epochs=10,callbacks=[tf.keras.callbacks.LambdaCallback(on_epoch_end=model.plot_images)])
-    # print(get_discriminator().summary())
+    # print(get_generator_on_vgg16().summary())
