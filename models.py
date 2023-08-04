@@ -253,7 +253,7 @@ class CycleGAN(tf.keras.Model):
         plt.savefig(f'{self.path}image_at_epoch{epoch}.png')
         plt.show()
 
-        if epoch % 25 == 0 and epoch:
+        if bool(epoch) and epoch % 25 == 0:
             self.discriminator_monet.save(f"{self.path}discriminator_monet ep{epoch}")
             self.discriminator_real.save(f"{self.path}discriminator_real ep{epoch}")
             self.generator_real_to_monet.save(f"{self.path}generator_real_to_monet ep{epoch}")
