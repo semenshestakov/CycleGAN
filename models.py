@@ -13,7 +13,7 @@ def get_generator_on_vgg16() -> tf.keras.Model:
     """
 
     def sigmoid(x):
-        return tf.nn.sigmoid(x)
+        return tf.nn.tanh(x)
 
     blocks = {
         "block1_conv2": 32,
@@ -241,16 +241,17 @@ class CycleGAN(tf.keras.Model):
         epoch = epoch + self.__bias_plot if epoch is not None else epoch
         num_cols = self._plot.shape[0]
 
-        generated_images = self.generator_f.predict(self._plot)
+        generated_images = (self.generator_f.predict(self._plot) + 1) / 2
         plt.figure(figsize=(num_cols * 2.0, num_rows * 2.0))
         for row in range(num_rows):
             for col in range(num_cols):
                 index = row * num_cols + col
                 plt.subplot(num_rows, num_cols, index + 1)
                 if row == 0:
-                    plt.imshow(self._plot[col])
+                    plt.imshow((self._plot[col] + 1) / 2)
                 else:
                     plt.imshow(generated_images[col])
+
                 plt.axis("off")
         plt.tight_layout()
         plt.savefig(f'{self.path}image_at_epoch{epoch}.png')
@@ -268,7 +269,7 @@ if __name__ == '__main__':
 
     data = ed.Data(path="data/", batch_size=5)
     _, x_plot = data[0]  # 200mb
-    x_plot = x_plot[:5]
+    x_plot = x_plot[:6]
     model = CycleGAN(x_plot, batch_size=5)  # 1gb
     model.plot_images()
     model.compile()
