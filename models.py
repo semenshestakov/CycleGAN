@@ -55,7 +55,7 @@ def get_generator_on_vgg16() -> tf.keras.Model:
     return tf.keras.Model(inp,x)
 
 
-def get_discriminator(leaky_relu_slope=0.2, depth=5, dropout=0.4, n=4) -> tf.keras.Model:
+def get_discriminator(leaky_relu_slope=0.2, depth=3, dropout=0.4, n=40) -> tf.keras.Model:
     """
     :param leaky_relu_slope:
     :param depth:
@@ -69,18 +69,18 @@ def get_discriminator(leaky_relu_slope=0.2, depth=5, dropout=0.4, n=4) -> tf.ker
     x = inp = Input(shape=(256, 256, 3))
 
     for _ in range(depth):
-        x = Conv2D(n * 2, kernel_size=3, strides=2, padding="same", use_bias=False, )(x)
+        x = Conv2D(n * 2, kernel_size=4, strides=2, padding="same", use_bias=False, )(x)
         x = LeakyReLU(alpha=leaky_relu_slope)(x)
         n *= 2
 
-    x = Flatten()(x)
-    x = Dropout(dropout)(x)
-    x = Dense(256, LeakyReLU(alpha=leaky_relu_slope))(x)
-    x = Dropout(dropout)(x)
-    x = Dense(128, LeakyReLU(alpha=leaky_relu_slope))(x)
-    x = Dropout(dropout)(x)
+    # x = Flatten()(x)
+    # x = Dropout(dropout)(x)
+    # x = Dense(256, LeakyReLU(alpha=leaky_relu_slope))(x)
+    # x = Dropout(dropout)(x)
+    # x = Dense(128, LeakyReLU(alpha=leaky_relu_slope))(x)
+    # x = Dropout(dropout)(x)
 
-    output = Dense(1)(x)
+    output = Conv2D(1, kernel_size=3, strides=2, padding="same")(x)
     return tf.keras.Model(inp, output, name="discriminator")
 
 
@@ -99,8 +99,7 @@ class CycleGAN(tf.keras.Model):
     total_gen_g_loss - Monet -> real gen
     total_gen_f_loss - real -> monet
     """
-
-    def __init__(self, data_plot: np.array, path="", lambda_cycle=10.0, lambda_identity=0.5, batch_size=20, bias_plot=0,
+    def __init__(self, data_plot: np.array, path="", lambda_cycle=10.0, lambda_identity=0.5, bias_plot=0,
                  iterval_save=5):
 
         super(CycleGAN, self).__init__()
@@ -170,11 +169,6 @@ class CycleGAN(tf.keras.Model):
     @tf.function
     def train_step(self, data):
         x_monet, x_real = data
-        fl = True
-        if x_monet.shape[0] is None:
-            print("Start...")
-            x_monet, x_real = tf.random.normal(shape=(self.BATCH, 256, 256, 3)), tf.random.normal(
-                shape=(self.BATCH, 256, 256, 3))
         real_x, real_y = x_monet, x_real
         with tf.GradientTape(persistent=True) as tape:
             fake_y = self.generator_g(real_x, training=True)
@@ -269,10 +263,11 @@ if __name__ == '__main__':
 
     data = ed.Data(path="data/", batch_size=5)
     _, x_plot = data[0]  # 200mb
-    x_plot = x_plot[:6]
-    model = CycleGAN(x_plot, batch_size=5)  # 1gb
-    model.plot_images()
-    model.compile()
+    print(x_plot.min(),x_plot.max(),x_plot.mean())
+    # x_plot = x_plot[:6]
+    # model = CycleGAN(x_plot, batch_size=5)  # 1gb
+    # model.plot_images()
+    # model.compile()
     # model.fit(data, epochs=10, callbacks=[tf.keras.callbacks.LambdaCallback(on_epoch_end=model.plot_images)])
     # model.fit(data,epochs=10,callbacks=[tf.keras.callbacks.LambdaCallback(on_epoch_end=model.plot_images)])
-    # print(get_generator_on_vgg16().summary())
+    get_discriminator().summary()
