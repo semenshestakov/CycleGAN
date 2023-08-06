@@ -14,11 +14,11 @@ def get_generator_on_vgg16(activate="sigmoid", _del=True) -> tf.keras.Model:
     """
 
     blocks = {
-        "block1_conv2": 32,
-        "block2_conv2": 64,
-        "block3_conv3": 128,
-        "block4_conv3": 256,
-        "block5_conv3": 256,
+        "block1_conv2": 30,
+        "block2_conv2": 60,
+        "block3_conv3": 120,
+        "block4_conv3": 200,
+        "block5_conv3": 200,
     }
 
     vgg16 = tf.keras.applications.VGG16(
@@ -32,19 +32,19 @@ def get_generator_on_vgg16(activate="sigmoid", _del=True) -> tf.keras.Model:
 
     for block in sorted(blocks.keys(), reverse=True):
 
-        l = vgg16.get_layer(block).output / 127.5
+        l = vgg16.get_layer(block).output / 128
         if x is not None:
             l = concatenate([
                 l, x
             ])
         l = Conv2D(blocks[block], (3, 3), activation="relu", padding="same")(l)
         if block != "block1_conv2":
-            x = Conv2DTranspose(blocks[block] // 2, (3, 3), strides=(2, 2), padding="same", activation="relu")(l)
+            x = Conv2DTranspose(blocks[block] // 2, (4, 4), strides=(2, 2), padding="same", activation="relu")(l)
 
-    x = Conv2D(16, (3, 3), activation="relu", padding="same")(x)
-    x = Conv2D(8, (3, 3), activation="relu", padding="same")(x)
+    x = Conv2D(16, (4, 4), activation="relu", padding="same")(x)
+    x = Conv2D(8, (4, 4), activation="relu", padding="same")(x)
 
-    output = Conv2D(3, (2, 2), activation=activate, padding="same", name="output")(x)
+    output = Conv2D(3, (7, 7), activation=activate, padding="same", name="output")(x)
 
     model = tf.keras.Model(vgg16.input, output, name="model_skip_on_vgg16")
     inp = Input((256, 256, 3))
@@ -76,7 +76,7 @@ def get_discriminator(leaky_relu_slope=0.2, depth=3, n=40, inp_shape=(256, 256, 
         x = LeakyReLU(alpha=leaky_relu_slope)(x)
         n *= 2
 
-    output = Conv2D(1, kernel_size=3, strides=2, padding="same")(x)
+    output = Conv2D(1, kernel_size=4, strides=1, padding="same")(x)
     return tf.keras.Model(inp, output, name="discriminator")
 
 
@@ -256,15 +256,15 @@ class CycleGAN(tf.keras.Model):
 
 
 if __name__ == '__main__':
-    import data.extract_data as ed
-
-    data = ed.Data(path="data/", batch_size=5)
-    _, x_plot = data[0]  # 200mb
-    x_plot = x_plot[:6]
-    model = CycleGAN(x_plot)  # 1gb
-    model.plot_images()
+    # import data.extract_data as ed
+    #
+    # data = ed.Data(path="data/", batch_size=5)
+    # _, x_plot = data[0]  # 200mb
+    # x_plot = x_plot[:6]
+    # model = CycleGAN(x_plot)  # 1gb
+    # model.plot_images()
     # model.compile()
     # model.fit(data, epochs=10, callbacks=[tf.keras.callbacks.LambdaCallback(on_epoch_end=model.plot_images)])
     # model.fit(data,epochs=10,callbacks=[tf.keras.callbacks.LambdaCallback(on_epoch_end=model.plot_images)])
-    # get_discriminator().summary()
+    get_discriminator().summary()
     # get_generator_on_vgg16().summary()
