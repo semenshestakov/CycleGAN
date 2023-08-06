@@ -32,7 +32,7 @@ def get_generator_on_vgg16(activate="sigmoid", _del=True) -> tf.keras.Model:
 
     for block in sorted(blocks.keys(), reverse=True):
 
-        l = vgg16.get_layer(block).output
+        l = vgg16.get_layer(block).output / 127.5
         if x is not None:
             l = concatenate([
                 l, x
