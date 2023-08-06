@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 
 class Data(tf.keras.utils.Sequence):
-    def __init__(self, batch_size: int = 32, path: str = ""):
+    def __init__(self, batch_size: int = 32, path: str = "",func=None):
 
         self.batch_size = batch_size
         self.path = path
@@ -15,6 +15,8 @@ class Data(tf.keras.utils.Sequence):
 
         self._gen_monet = self.__gen("monet")
         self._gen_photo = self.__gen("photo")
+
+        self._lambda = func if func is not None else lambda x: x / 255.0
 
         self.__len = self.__calc() // batch_size
 
@@ -36,7 +38,7 @@ class Data(tf.keras.utils.Sequence):
                 X = np.zeros((self.batch_size, 256, 256, 3), dtype=float)
                 k = 0
 
-            X[k] = np.array(Image.open(f"{self.path}{path}/{name}"), dtype=float) / 127.5 - 1
+            X[k] = self._lambda(np.array(Image.open(f"{self.path}{path}/{name}"), dtype=float))
             k += 1
 
         yield X[:k]
