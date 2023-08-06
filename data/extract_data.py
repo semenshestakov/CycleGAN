@@ -17,7 +17,6 @@ class Data(tf.keras.utils.Sequence):
         self._gen_photo = self.__gen("photo")
 
         self._lambda = func if func is not None else lambda x: x / 255.0
-
         self.__len = self.__calc() // batch_size
 
     def __calc(self):

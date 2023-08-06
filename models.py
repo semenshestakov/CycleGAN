@@ -260,7 +260,6 @@ if __name__ == '__main__':
 
     data = ed.Data(path="data/", batch_size=5)
     _, x_plot = data[0]  # 200mb
-    print(x_plot.min(), x_plot.max(), x_plot.mean())
     x_plot = x_plot[:6]
     model = CycleGAN(x_plot)  # 1gb
     model.plot_images()
