@@ -6,16 +6,14 @@ import matplotlib.pyplot as plt
 
 
 class Data(tf.keras.utils.Sequence):
-    def __init__(self, batch_size: int = 32, path: str = "",func=None):
+    def __init__(self, batch_size: int = 32, path: str = "", func=None):
 
         self.batch_size = batch_size
         self.path = path
-
         self.df = pd.read_csv(path + "data.csv")
 
         self._gen_monet = self.__gen("monet")
         self._gen_photo = self.__gen("photo")
-
         self._lambda = func if func is not None else lambda x: x / 255.0
         self.__len = self.__calc() // batch_size
 
@@ -62,6 +60,6 @@ class Data(tf.keras.utils.Sequence):
 if __name__ == '__main__':
     d = Data()
     x1, x2 = d[0]
-    print(x2.shape,x1.shape)
-    plt.imshow((x2[1]+1) / 2)
+    print(x2.shape, x1.shape)
+    plt.imshow((x2[1] + 1) / 2)
     plt.show()
