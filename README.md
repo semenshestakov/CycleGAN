@@ -51,6 +51,10 @@ Instance Normalization(IN) - позволяет избавиться от сет
 
 ### Результат после каждой мини эпохи.
 
+
+https://github.com/semenshestakov/CycleGAN/assets/94396766/7f5edbad-5e0a-42fd-a521-fddbdc52bd84
+
+
 ![1df4ff0436](https://github.com/semenshestakov/CycleGAN/assets/94396766/3f858a18-6f45-4ec2-a25b-3fc70351a283)
 ![1e90517e22](https://github.com/semenshestakov/CycleGAN/assets/94396766/24c5e197-5797-4e55-808a-ac8b4135a1d8)
 ![1f006ed5eb](https://github.com/semenshestakov/CycleGAN/assets/94396766/5fa3120a-47cc-4855-9f3e-5db852a1970f)
