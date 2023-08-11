@@ -65,6 +65,11 @@ https://github.com/semenshestakov/CycleGAN/assets/94396766/7f5edbad-5e0a-42fd-a5
 ![daf0f4bdc1](https://github.com/semenshestakov/CycleGAN/assets/94396766/e579ac3a-5075-45bc-8080-11edbc87ba79)
 ![df571c611d](https://github.com/semenshestakov/CycleGAN/assets/94396766/c8530dc4-b167-4b90-94b3-8294082a14e8)
 
+### Графики обучения модели
+![acc](https://github.com/semenshestakov/CycleGAN/assets/94396766/bbac9447-b334-4d11-969e-197565359f95)
+![losses](https://github.com/semenshestakov/CycleGAN/assets/94396766/c2008e71-7ce2-4184-9919-2ab36ede37fa)
+
+
 
 ### Большое результатов в data/result
 
